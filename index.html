@@ -1163,74 +1163,35 @@ html,body{width:100%;height:100%;overflow:hidden;background:#1a0f0d;}
 </div><!-- /details-page -->
 
 <!-- Background Music -->
-<audio id="bgMusic" loop preload="auto" muted>
+<audio id="bgMusic" loop preload="auto">
   <source src="music.mp3" type="audio/mpeg">
 </audio>
 
 <script>
-// Background music - tries to play with sound immediately
-(function(){
-  const bgMusic = document.getElementById('bgMusic');
-  if(!bgMusic) return;
-  
+// Background music - ONLY plays on envelope click (no auto-play attempts)
+const bgMusic = document.getElementById('bgMusic');
+if(bgMusic){
   bgMusic.volume = 0.6;
-  let musicStarted = false;
+  let musicPlaying = false;
   
-  // Function to start music
-  const startMusic = () => {
-    if(musicStarted) return;
-    console.log('Attempting to play music with sound...');
-    
-    // Try unmuted first
-    bgMusic.muted = false;
-    bgMusic.play()
-      .then(() => {
-        console.log('✓ Music playing WITH SOUND!');
-        musicStarted = true;
-      })
-      .catch(err => {
-        console.log('⚠️ Unmuted play blocked, trying muted:', err.message);
-        // Fallback to muted
-        bgMusic.muted = true;
-        bgMusic.play()
-          .then(() => {
-            console.log('Music playing muted. Tap anywhere to hear sound.');
-          })
-          .catch(e => console.error('Even muted play failed:', e));
-      });
-  };
-  
-  // Try IMMEDIATELY when loaded
-  bgMusic.addEventListener('canplaythrough', () => {
-    console.log('✓ Music loaded and ready');
-    startMusic();
-  }, {once: true});
-  
-  // Also try on page load
-  window.addEventListener('load', () => {
-    setTimeout(startMusic, 100);
-  });
-  
-  // Unmute on any interaction
-  const events = ['click', 'touchstart', 'keydown', 'mousemove'];
-  const unmuteOnce = () => {
-    if(bgMusic.muted) {
-      bgMusic.muted = false;
-      bgMusic.volume = 0.6;
-      if(!musicStarted) bgMusic.play();
-      console.log('✓ Music UNMUTED - now playing with sound!');
+  // ONLY play music when openEnvelope function is called
+  const originalOpenEnvelope = window.openEnvelope;
+  window.openEnvelope = function(){
+    // Start music on envelope tap
+    if(!musicPlaying){
+      bgMusic.play()
+        .then(() => {
+          musicPlaying = true;
+          console.log('✓ Music started playing');
+        })
+        .catch(err => {
+          console.warn('Music play failed:', err.message);
+        });
     }
-    events.forEach(e => document.removeEventListener(e, unmuteOnce));
+    // Call original function
+    if(originalOpenEnvelope) originalOpenEnvelope();
   };
-  events.forEach(e => document.addEventListener(e, unmuteOnce, {once: true}));
-  
-  // Also on envelope open
-  const originalOpenEnvelope = openEnvelope;
-  openEnvelope = function(){
-    unmuteOnce();
-    originalOpenEnvelope();
-  };
-})();
+}
 
 
 /* ═══ ENVELOPE FLOWERS ═══ */
